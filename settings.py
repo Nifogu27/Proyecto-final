@@ -1,3 +1,3 @@
 settings = {
-    "TOKEN": "Agrega tu token aquí"
+    "TOKEN": "Agrega tu token de tu bot de Discord aquí"
 }
