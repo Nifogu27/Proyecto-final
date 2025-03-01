@@ -1,3 +1,3 @@
 settings = {
-    "TOKEN": ""
+    "TOKEN": "Agrega tu token aquí"
 }
