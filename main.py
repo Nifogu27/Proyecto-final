@@ -1,19 +1,16 @@
 import discord
-import os, random
-import time 
+import os, random, time
 import requests
 from discord.ext import commands
 from settings import settings
+import deepl
 
 intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix='$', intents=intents)
 
-@bot.event
-async def on_ready():
-    print(f'We have logged in as {bot.user}')
-
+# Comandos existentes
 @bot.command()
 async def hello(ctx):
     await ctx.send(f'Hi!, I am a bot {bot.user}!')
@@ -179,6 +176,124 @@ async def limpiar(ctx):
     await ctx.channel.purge()
     await ctx.send("Mensajes eliminados", delete_after = 3)
 
+# Piedra, papel o tijera
+@bot.command()
+async def ppt(ctx):
+    await ctx.send("¡Hola! Juguemos piedra, papel o tijera. Escribe tu elección: piedra, papel o tijera.")
+    
+    def check(m):
+        return m.author == ctx.author and m.channel == ctx.channel and m.content.lower() in ["piedra", "papel", "tijera"]
+    
+    msg = await bot.wait_for("message", check=check)
+    opciones = ["piedra", "papel", "tijera"]
+    bot_choice = random.choice(opciones)
+    eleccion = msg.content.lower()
+    
+    if eleccion == bot_choice:
+        resultado = "Empate"
+    elif (eleccion == "piedra" and bot_choice == "tijera") or (eleccion == "papel" and bot_choice == "piedra") or (eleccion == "tijera" and bot_choice == "papel"):
+        resultado = "¡Ganaste!"
+    else:
+        resultado = "¡Perdiste!"
+    
+    await ctx.send(f'Yo elegí {bot_choice}. {resultado}')
+
+# Lanzar dados
+@bot.command()
+async def dado(ctx):
+    await ctx.send(f'Sacaste un {random.randint(1, 6)}')
+
+# Adivinar el número
+@bot.command()
+async def adivina(ctx):
+    numero = random.randint(1, 10)
+    await ctx.send("Adivina un número del 1 al 10")
+    def check(m):
+        return m.author == ctx.author and m.channel == ctx.channel
+    
+    while True:
+        msg = await bot.wait_for("message", check=check)
+        try:
+            guess = int(msg.content)
+            if guess == numero:
+                await ctx.send("¡Correcto! 🎉")
+                break
+            else:
+                await ctx.send("Intenta de nuevo")
+        except ValueError:
+            await ctx.send("Ingresa un número válido")
+
+# Reto de dibujo
+@bot.command()
+async def dibujo(ctx):
+    retos = ["Dibuja un dragón", "Dibuja un paisaje futurista", "Dibuja tu personaje favorito en otro estilo"]
+    await ctx.send(random.choice(retos))
+
+API_KEY = "cb2e23087a914f5e924161055252202"
+BASE_URL = "http://api.weatherapi.com/v1/current.json"
+@bot.command()
+async def clima(ctx, *, ciudad: str):
+    """Obtiene el clima de una ciudad usando WeatherAPI"""
+    try:
+        params = {
+            "key": API_KEY,
+            "q": ciudad,
+            "lang": "es"
+        }
+        response = requests.get(BASE_URL, params=params)
+        data = response.json()
+        if response.status_code == 200:
+            nombre_ciudad = data["location"]["name"]
+            pais = data["location"]["country"]
+            temperatura = data["current"]["temp_c"]
+            humedad = data["current"]["humidity"]
+            viento = data["current"]["wind_kph"]
+            descripcion = data["current"]["condition"]["text"]
+            mensaje = (f"🌍 *Clima en {nombre_ciudad}, {pais}:*\n"
+                       f"🌡️ *Temperatura:* {temperatura}°C\n"
+                       f"💧 *Humedad:* {humedad}%\n"
+                       f"🌬️ *Viento:* {viento} km/h\n"
+                       f"⛅ *Descripción:* {descripcion}")
+        else:
+            mensaje = f"❌ No se encontró la ciudad '{ciudad}'."
+        await ctx.send(mensaje)
+    except Exception as e:
+        await ctx.send("⚠️ Ocurrió un error al obtener el clima.")
+        print(f"Error: {e}")
+
+
+DEEPL_API_KEY = "a095f285-5f80-4e4b-a1cb-ed41938284c1:fx"
+translator = deepl.Translator(DEEPL_API_KEY)
+@bot.command()
+async def traducir(ctx, idioma_destino: str, *, texto: str):
+    """Traduce un texto al idioma especificado"""
+    try:
+        resultado = translator.translate_text(texto, target_lang=idioma_destino.upper())
+        await ctx.send(f"*Traducción ({idioma_destino}):* {resultado.text}")
+    except Exception as e:
+        await ctx.send(f"⚠️ Error al traducir: {e}")
+
+
+API_KEY_NEWS = "7d804aaae84d487b9f1153d58ceab275"
+@bot.command()
+async def noticias(ctx):
+    """Obtiene las noticias del día."""
+    url = f"https://newsapi.org/v2/top-headlines?country=us&apiKey={API_KEY_NEWS}"
+    try:
+        response = requests.get(url)
+        news = response.json()
+        if news["status"] == "ok":
+            articles = news["articles"][:5]  # Obtener las 5 primeras noticias
+            for article in articles:
+                title = article["title"]
+                description = article["description"]
+                url = article["url"]
+                await ctx.send(f"**{title}**\n{description}\nMás información: {url}\n")
+        else:
+            await ctx.send("Lo siento, no pude obtener las noticias.")
+    except Exception as e:
+        await ctx.send(f"Error al obtener noticias: {e}")
+
 @bot.command()
 async def ayuda(ctx):
     ayuda_texto = """
@@ -195,13 +310,19 @@ async def ayuda(ctx):
     9. **$joined [miembro]**: Muestra la fecha en que un miembro se unió al servidor.
     10. **$choose [opciones]**: Elige aleatoriamente entre las opciones dadas.
     11. **$check**: Verifica si se subió una imagen y la procesa.
-    12. **$contaminacion**: Habla sobre la contaminación y ofrece consejos para combatirla.
-    13. **$peliculas**: Habla sobre películas y ofrece recomendaciones.
+    12. **$contaminacion**: Informa sobre la contaminación y ofrece consejos para combatirla.
+    13. **$peliculas**: Da recomendaciones de películas y lugares para verlas.
     14. **$limpiar**: Elimina mensajes en el canal.
-
-    Si necesitas más ayuda, no dudes en preguntar.
+    15. **$ppt**: Juega piedra, papel o tijera con el bot.
+    16. **$dado**: Lanza un dado (número aleatorio entre 1 y 6).
+    17. **$adivina**: Adivina un número entre 1 y 10.
+    18. **$dibujo**: Da un reto de dibujo aleatorio.
+    19. **$clima [ciudad]**: Muestra el clima actual de la ciudad proporcionada.
+    20. **$traducir [idioma_destino] [texto]**: Traduce un texto al idioma especificado.
+    21. **$noticias**: Muestra las últimas noticias.
     """
     await ctx.send(ayuda_texto)
 
 
+# Iniciar el bot
 bot.run(settings["TOKEN"])
