@@ -242,7 +242,7 @@ async def adivina(ctx):
 # Reto de dibujo
 @bot.command()
 async def dibujo(ctx):
-    retos = ["Dibuja un carro", "Dibuja a un ser querido", "Dibuja un famoso" "Dibuja un paisaje", "Dibuja tu personaje animado"]
+    retos = ["Dibuja un carro", "Dibuja a un ser querido", "Dibuja un famoso", "Dibuja un paisaje", "Dibuja tu personaje animado"]
     await ctx.send(random.choice(retos))
 
 
