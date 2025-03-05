@@ -3,7 +3,7 @@ import random
 import requests
 from discord.ext import commands
 from settings import settings
-from discord.ui import View, Select
+from discord.ui import View
 import google.generativeai as genai
 import deepl
 
