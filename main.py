@@ -408,5 +408,17 @@ async def ayuda(ctx):
     """
     await ctx.send(help_text)
 
+
+#Manejo de errores al utilizar los comandos
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send("Comando no encontrado. Usa `$ayuda` para ver la lista de comandos.")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("Faltan argumentos. Usa `$ayuda` para ver cómo usar este comando.")
+    else:
+        await ctx.send(f"Ocurrió un error: {error}")
+
+
 # Iniciar el bot
 bot.run(settings["TOKEN"])
