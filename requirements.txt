@@ -6,3 +6,4 @@ deepl==1.21.0
 google-api-python-client==2.162.0
 SQLAlchemy==2.0.36
 tqdm==4.67.1
+qrcode[pil]==7.3.1
