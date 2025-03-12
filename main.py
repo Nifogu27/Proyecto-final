@@ -1,11 +1,13 @@
 import discord
 import random
 import requests
+import google.generativeai as genai
+import deepl
+import qrcode
 from discord.ext import commands
 from settings import settings
 from discord.ui import View
-import google.generativeai as genai
-import deepl
+from io import BytesIO
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -25,7 +27,7 @@ async def test(ctx, *arg):
 
 # El bot se ríe jajaja
 @bot.command()
-async def jaj(ctx, count_heh = 5):
+async def ja(ctx, count_heh = 5):
     await ctx.send("ja" * count_heh)
 
 # Dice la fecha en la que un usuario se unió
@@ -119,6 +121,23 @@ async def fox(ctx):
     '''The fox command returns the photo of the fox'''
     image_link= get_fox_image_link()
     await ctx.send(image_link)
+
+@bot.command()
+async def qr(ctx, *, link: str):
+    """Genera un código QR a partir de un enlace."""
+    try:
+        # Generar el código QR
+        qr_img = qrcode.make(link)
+        
+        # Guardar la imagen en memoria para enviarla directamente
+        buffer = BytesIO()
+        qr_img.save(buffer, format="PNG")
+        buffer.seek(0)
+        
+        # Enviar la imagen como archivo adjunto
+        await ctx.send(file=discord.File(buffer, "qrcode.png"))
+    except Exception as e:
+        await ctx.send(f"Error al generar el código QR: {e}")
 
 
 # El bot te habla de contaminación
@@ -219,25 +238,32 @@ async def ppt(ctx):
 async def dado(ctx):
     await ctx.send(f'Sacaste un {random.randint(1, 6)}')
 
-# Adivinar el número
+# Comando para adivinar el número
 @bot.command()
 async def adivina(ctx):
-    numero = random.randint(1, 10)
-    await ctx.send("Adivina un número del 1 al 10")
-    def check(m):
-        return m.author == ctx.author and m.channel == ctx.channel
+    """Adivina un número entre 1 y 100, con 3 intentos."""
+    numero = random.randint(1, 100)
+    intentos = 5
+    await ctx.send(f"Estoy pensando en un número entre 1 y 100. Tienes {intentos} intentos para adivinarlo.")
     
-    while True:
-        msg = await bot.wait_for("message", check=check)
-        try:
-            guess = int(msg.content)
-            if guess == numero:
-                await ctx.send("¡Correcto! 🎉")
-                break
-            else:
-                await ctx.send("Intenta de nuevo")
-        except ValueError:
-            await ctx.send("Ingresa un número válido")
+    def check(message):
+        return message.author == ctx.author and message.content.isdigit()
+    
+    while intentos > 0:
+        msg = await bot.wait_for('message', check=check)
+        adivinanza = int(msg.content)
+        
+        if adivinanza < numero:
+            await ctx.send("El número es más grande. ¡Intenta de nuevo!")
+        elif adivinanza > numero:
+            await ctx.send("El número es más pequeño. ¡Intenta de nuevo!")
+        else:
+            await ctx.send("¡Correcto!🎯 ¡Adivinaste el número!")
+            return
+        intentos -= 1
+    
+    await ctx.send(f"Se acabaron los intentos. El número era {numero}.")
+
 
 # Reto de dibujo
 @bot.command()
@@ -384,27 +410,28 @@ async def ayuda(ctx):
 9. **$dog**: Envía una imagen aleatoria de un perro.
 10. **$fox**: Envía una imagen aleatoria de un zorro.
 11. **$poke <pokemón>**: Muestra la imagen de un pokemón (requiere el nombre del pokemón).
+12. **$qr <link>**: Convierte el link dado en un código QR.
 
 **Funciones Informativas** ℹ️:
-12. **$contaminacion**: Habla sobre la contaminación y da consejos para combatirla.
-13. **$peliculas**: Te recomienda películas según tu preferencia.
-14. **$clima <ciudad>**: Muestra el clima de la ciudad que indiques.
-15. **$noticias**: Muestra las noticias del día.
+13. **$contaminacion**: Habla sobre la contaminación y da consejos para combatirla.
+14. **$peliculas**: Te recomienda películas según tu preferencia.
+15. **$clima <ciudad>**: Muestra el clima de la ciudad que indiques.
+16. **$noticias**: Muestra las noticias del día.
 
 **Funciones de Juegos** 🎮:
-16. **$ppt**: Juega una partida de piedra, papel o tijera.
-17. **$dado**: Lanza un dado y te dice el número que salió.
-18. **$adivina**: Adivina un número del 1 al 10.
-19. **$dibujo**: Te reta a dibujar algo al azar.
+17. **$ppt**: Juega una partida de piedra, papel o tijera.
+18. **$dado**: Lanza un dado y te dice el número que salió.
+19. **$adivina**: Adivina un número entre 1 y 100. Tienes cinco intentos.
+20. **$dibujo**: Te reta a dibujar algo al azar.
 
 **Chatbot** 🤖:
-20. **$gemini <pregunta>**: Responde preguntas utilizando el chatbot Gemini.
+21. **$gemini <pregunta>**: Responde preguntas utilizando el chatbot Gemini.
 
 **Funciones de Traducción** 🌍:
-21. **$traducir <texto>**: Traduce el texto dado al idioma que selecciones.
+22. **$traducir <texto>**: Traduce el texto dado al idioma que selecciones.
 
 **Funciones de Moderación** ⚙️:
-22. **$limpiar <número>**: Elimina el número de mensajes especificado del canal (solo administradores).
+23. **$limpiar <número>**: Elimina el número de mensajes especificado del canal (solo administradores).
     """
     await ctx.send(help_text)
 
